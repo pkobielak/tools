@@ -1,5 +1,6 @@
-#!/usr/bin/env bash
-# Usage: ./upload_to_s3.sh <bucket> <region> <endpoint> <access_key> <secret_key> <source_dir> <dest_dir> [workers]
+#!/usr/bin/env python3
+# Usage: ./upload_to_s3.py [bucket region endpoint access_key secret_key] <source_dir> <dest_dir> [workers]
+#        S3 connection params can be omitted if set in .env (see .env.example)
 import sys
 import time
 import mimetypes
@@ -15,13 +16,20 @@ except Exception:
     print("Missing deps. Install: pip install boto3")
     raise
 
-args = sys.argv[1:]
-if not (7 <= len(args) <= 8):
-    print("Usage: bucket region endpoint access_key secret_key source_dir dest_dir [workers]")
-    sys.exit(1)
+from s3_config import get_s3_config, s3_config_available
 
-bucket, region, endpoint, key, secret, source_dir, dest_dir = args[:7]
-workers = int(args[7]) if len(args) == 8 else 8
+args = sys.argv[1:]
+if 7 <= len(args) <= 8:
+    bucket, region, endpoint, key, secret, source_dir, dest_dir = args[:7]
+    workers = int(args[7]) if len(args) == 8 else 8
+elif 2 <= len(args) <= 3 and s3_config_available():
+    bucket, region, endpoint, key, secret = get_s3_config()
+    source_dir, dest_dir = args[:2]
+    workers = int(args[2]) if len(args) == 3 else 8
+else:
+    print("Usage: [bucket region endpoint access_key secret_key] source_dir dest_dir [workers]")
+    print("       S3 params can be set in .env instead of passing them on the command line")
+    sys.exit(1)
 
 s3 = boto3.client(
     "s3",

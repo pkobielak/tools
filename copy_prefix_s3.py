@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Usage: ./copy_prefix_s3.py <bucket> <region> <endpoint> <access_key> <secret_key> <src_prefix> <dest_prefix> [workers]
+# Usage: ./copy_prefix_s3.py [bucket region endpoint access_key secret_key] <src_prefix> <dest_prefix> [workers]
+#        S3 connection params can be omitted if set in .env (see .env.example)
 import sys, time, threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
@@ -10,13 +11,20 @@ except Exception:
     print("Missing deps. Install: pip install boto3")
     raise
 
-args = sys.argv[1:]
-if not (7 <= len(args) <= 8):
-    print("Usage: bucket region endpoint access_key secret_key src_prefix dest_prefix [workers]")
-    sys.exit(1)
+from s3_config import get_s3_config, s3_config_available
 
-bucket, region, endpoint, key, secret, src_prefix, dest_prefix = args[:7]
-workers = int(args[7]) if len(args) == 8 else 16
+args = sys.argv[1:]
+if 7 <= len(args) <= 8:
+    bucket, region, endpoint, key, secret, src_prefix, dest_prefix = args[:7]
+    workers = int(args[7]) if len(args) == 8 else 16
+elif 2 <= len(args) <= 3 and s3_config_available():
+    bucket, region, endpoint, key, secret = get_s3_config()
+    src_prefix, dest_prefix = args[:2]
+    workers = int(args[2]) if len(args) == 3 else 16
+else:
+    print("Usage: [bucket region endpoint access_key secret_key] src_prefix dest_prefix [workers]")
+    print("       S3 params can be set in .env instead of passing them on the command line")
+    sys.exit(1)
 
 s3 = boto3.client("s3", region_name=region, endpoint_url=endpoint, aws_access_key_id=key, aws_secret_access_key=secret)
 

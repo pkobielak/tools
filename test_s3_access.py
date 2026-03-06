@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Usage: ./test_s3_access.py <bucket> <region> <endpoint> <access_key> <secret_key> <prefix>
+# Usage: ./test_s3_access.py [bucket region endpoint access_key secret_key] <prefix>
+#        S3 connection params can be omitted if set in .env (see .env.example)
 import sys
 from collections import defaultdict
 
@@ -10,12 +11,18 @@ except Exception:
     print("Missing deps. Install: pip install boto3")
     raise
 
-args = sys.argv[1:]
-if len(args) != 6:
-    print("Usage: bucket region endpoint access_key secret_key prefix")
-    sys.exit(1)
+from s3_config import get_s3_config, s3_config_available
 
-bucket, region, endpoint, key, secret, prefix = args
+args = sys.argv[1:]
+if len(args) == 6:
+    bucket, region, endpoint, key, secret, prefix = args
+elif len(args) == 1 and s3_config_available():
+    bucket, region, endpoint, key, secret = get_s3_config()
+    prefix = args[0]
+else:
+    print("Usage: [bucket region endpoint access_key secret_key] prefix")
+    print("       S3 params can be set in .env instead of passing them on the command line")
+    sys.exit(1)
 
 try:
     s3 = boto3.client(

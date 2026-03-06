@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-# Usage: ./print_s3_json.py <bucket> <region> <endpoint> <access_key> <secret_key> <key>
+# Usage: ./print_s3_json.py [bucket region endpoint access_key secret_key] <key>
+#        S3 connection params can be omitted if set in .env (see .env.example)
 import sys, json
 
 try:
@@ -9,12 +10,19 @@ except Exception:
     print("Missing deps. Install: pip install boto3")
     raise
 
+from s3_config import get_s3_config, s3_config_available
+
 args = sys.argv[1:]
-if len(args) != 6:
-    print("Usage: bucket region endpoint access_key secret_key key")
+if len(args) == 6:
+    bucket, region, endpoint, access_key, secret_key, key = args
+elif len(args) == 1 and s3_config_available():
+    bucket, region, endpoint, access_key, secret_key = get_s3_config()
+    key = args[0]
+else:
+    print("Usage: [bucket region endpoint access_key secret_key] key")
+    print("       S3 params can be set in .env instead of passing them on the command line")
     sys.exit(1)
 
-bucket, region, endpoint, access_key, secret_key, key = args
 key = key.lstrip('/')  # accept leading slash
 
 try:
